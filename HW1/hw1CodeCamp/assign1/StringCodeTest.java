@@ -70,6 +70,24 @@ public class StringCodeTest {
 		assertEquals(3, StringCode.maxRun("1112233"));
 	}
 
-	// TODO Need test cases for stringIntersect
+	@Test
+	public void testIntersect1() {
+		assertEquals(true, StringCode.stringIntersect("abcdef", "12bc34", 2));
+		assertEquals(false, StringCode.stringIntersect("abcdefg", "fghijkl", 3));
+	}
+	
+	@Test
+	public void testIntersect2() {
+		assertEquals(false, StringCode.stringIntersect("", "123456", 1));
+		assertEquals(false, StringCode.stringIntersect("123456", "", 1));
+	}
+	
+	@Test
+	public void testIntersect3() {
+		assertEquals(true, StringCode.stringIntersect("abcd", "acef", 1));
+		assertEquals(true, StringCode.stringIntersect("aaaabb", "aaabb", 5));
+		assertEquals(true, StringCode.stringIntersect("aaaabb", "aaabb", 4));
+		assertEquals(false, StringCode.stringIntersect("aaaabb", "aaabbc", 6));
+	}
 	
 }

@@ -14,7 +14,22 @@ public class StringCode {
 	 * @return max run length
 	 */
 	public static int maxRun(String str) {
-		return 0; // TODO ADD YOUR CODE HERE
+		if (str == "") {
+			return 0;
+		}
+		int maxCount = 0;
+		int currentCount = 1;
+		char lastChar = str.charAt(0);
+		for (int i = 1; i < str.length(); i++) {
+			if (lastChar != str.charAt(i) || i == str.length() - 1) {
+				maxCount = Math.max(maxCount, currentCount);
+				lastChar = str.charAt(i);
+				currentCount = 1;
+			} else {
+				currentCount += 1;
+			}
+		}
+		return maxCount;
 	}
 
 	
@@ -26,7 +41,21 @@ public class StringCode {
 	 * @return blown up string
 	 */
 	public static String blowup(String str) {
-		return null; // TODO ADD YOUR CODE HERE
+		StringBuilder ret = new StringBuilder();
+		for (int i = 0; i < str.length(); i++) {
+			char ch = str.charAt(i);
+			if (ch < '0' || ch > '9') {
+				ret.append(ch);
+			} else {
+				if (i != str.length() - 1) {
+					char ch2 = str.charAt(i + 1);
+					for (int j = 0; j < ch - '0'; j++) {
+						ret.append(ch2);
+					}
+				}
+			}
+		}
+		return ret.toString();
 	}
 	
 	/**
@@ -36,6 +65,15 @@ public class StringCode {
 	 * Compute this in linear time using a HashSet. Len will be 1 or more.
 	 */
 	public static boolean stringIntersect(String a, String b, int len) {
-		return false; // TO DO ADD YOUR CODE HERE
+		HashSet<String> hs = new HashSet<String>();
+		for (int i = 0; i <= a.length() - len; i++) {
+			hs.add(a.substring(i, i + len));
+		}
+		for (int i = 0; i <= b.length() - len; i++) {
+			if (hs.contains(b.substring(i, i + len))) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
