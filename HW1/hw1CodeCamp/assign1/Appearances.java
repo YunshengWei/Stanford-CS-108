@@ -10,7 +10,30 @@ public class Appearances {
 	 * @return number of same-appearance elements
 	 */
 	public static <T> int sameCount(Collection<T> a, Collection<T> b) {
-		return 0; // TODO ADD CODE HERE
+		int same = 0;
+		
+		HashMap<T, Integer> hm1 = new HashMap<T, Integer>();
+		for (T t : a) {
+			if (!hm1.containsKey(t)) {
+				hm1.put(t, 0);
+			}
+			hm1.put(t, hm1.get(t) + 1);
+		}
+		HashMap<T, Integer> hm2 = new HashMap<T, Integer>();
+		for (T t : b) {
+			if (!hm2.containsKey(t)) {
+				hm2.put(t, 0);
+			}
+			hm2.put(t, hm2.get(t) + 1);
+		}
+		for (Map.Entry<T, Integer> me : hm2.entrySet()) {
+			if (hm1.get(me.getKey()) == me.getValue()) {
+				same += 1;
+			}
+		}
+		
+		
+		return same;
 	}
 	
 }
