@@ -35,11 +35,27 @@ public class Piece {
 	 Makes its own copy of the array and the TPoints inside it.
 	*/
 	public Piece(TPoint[] points) {
-		// YOUR CODE HERE
+		int maxX = Integer.MIN_VALUE;
+		int maxY = Integer.MIN_VALUE;
+		
+		body = new TPoint[points.length];		
+		for (int i = 0; i < body.length; i++) {
+			maxX = Math.max(maxX, points[i].x);
+			maxY = Math.max(maxY, points[i].y);
+			body[i] = new TPoint(points[i]);
+		}
+		
+		width = maxX + 1;
+		height = maxY + 1;
+		
+		skirt = new int[width];
+		Arrays.fill(skirt, Integer.MAX_VALUE);
+		for (int i = 0; i < body.length; i++) {
+			skirt[body[i].x] = Math.min(body[i].y, skirt[body[i].x]);
+		}
+		
+		next = null;
 	}
-	
-
-	
 	
 	/**
 	 * Alternate constructor, takes a String with the x,y body points
@@ -88,7 +104,21 @@ public class Piece {
 	 rotated from the receiver.
 	 */
 	public Piece computeNextRotation() {
-		return null; // YOUR CODE HERE
+		TPoint[] points = new TPoint[body.length];
+		int minX = Integer.MAX_VALUE;
+		int minY = Integer.MAX_VALUE;
+		for (int i = 0; i < body.length; i++) {
+			points[i] = new TPoint(-body[i].y, body[i].x);
+			minX = Math.min(points[i].x, minX);
+			minY = Math.min(points[i].y, minY);
+		}
+		
+		for (int i = 0; i < points.length; i++) {
+			points[i].x -= minX;
+			points[i].y -= minY;
+		}
+		
+		return new Piece(points);
 	}
 
 	/**
@@ -120,7 +150,16 @@ public class Piece {
 		if (!(obj instanceof Piece)) return false;
 		Piece other = (Piece)obj;
 		
-		// YOUR CODE HERE
+		boolean[][] grids = new boolean[width][height];
+		for (int i = 0; i < body.length; i++) {
+			grids[body[i].x][body[i].y] = true;
+		}
+		for (int i = 0; i < other.body.length; i++) {
+			if (!grids[other.body[i].x][other.body[i].y]) {
+				return false;
+			}
+		}
+		
 		return true;
 	}
 
@@ -168,7 +207,6 @@ public class Piece {
 			};
 		}
 		
-		
 		return Piece.pieces;
 	}
 	
@@ -187,10 +225,16 @@ public class Piece {
 	 to the first piece.
 	*/
 	private static Piece makeFastRotations(Piece root) {
-		return null; // YOUR CODE HERE
+		Piece currentPiece = root;
+		Piece rotatedPiece;
+		while (!root.equals(rotatedPiece = currentPiece.computeNextRotation())) {
+			currentPiece.next = rotatedPiece;
+			currentPiece = rotatedPiece;
+		}
+		currentPiece.next = root;
+		
+		return root;
 	}
-	
-	
 
 	/**
 	 Given a string of x,y pairs ("0 0	0 1 0 2 1 0"), parses
