@@ -155,7 +155,8 @@ public class Piece {
 			grids[body[i].x][body[i].y] = true;
 		}
 		for (int i = 0; i < other.body.length; i++) {
-			if (!grids[other.body[i].x][other.body[i].y]) {
+			if (other.body[i].x >= width || other.body[i].y >= height 
+				|| !grids[other.body[i].x][other.body[i].y]) {
 				return false;
 			}
 		}

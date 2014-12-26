@@ -63,5 +63,15 @@ public class PieceTest {
 		assertTrue(Arrays.equals(new int[] {1, 0}, sRotated.getSkirt()));
 	}
 	
+	@Test
+	public void testRotation() {
+		Piece s1 = Piece.getPieces()[Piece.S1];
+		assertTrue(s1.fastRotation().equals(sRotated));
+		assertTrue(s.fastRotation() == null);
+		Piece squ = Piece.getPieces()[Piece.SQUARE];
+		assertTrue(squ.fastRotation() == squ);
+		Piece l = Piece.getPieces()[Piece.STICK];
+		assertTrue(l.fastRotation().getWidth() == 4);
+	}
 	
 }

@@ -17,6 +17,16 @@ public class Board	{
 	private boolean DEBUG = true;
 	boolean committed;
 	
+	private int[] widths;
+	private int[] heights;
+	private int maxHeight;
+	
+	// backups
+	private boolean[][] xGrid;
+	private int[] xWidths;
+	private int[] xHeights;
+	private int xMaxHeight;
+	
 	
 	// Here a few trivial methods are provided:
 	
@@ -30,7 +40,13 @@ public class Board	{
 		grid = new boolean[width][height];
 		committed = true;
 		
-		// YOUR CODE HERE
+		widths = new int[height];
+		heights = new int[width];
+		maxHeight = 0;
+		
+		xWidths = new int[widths.length];
+		xHeights = new int[heights.length];
+		xGrid = new boolean[width][height];
 	}
 	
 	
@@ -54,8 +70,8 @@ public class Board	{
 	 Returns the max column height present in the board.
 	 For an empty board this is 0.
 	*/
-	public int getMaxHeight() {	 
-		return 0; // YOUR CODE HERE
+	public int getMaxHeight() {
+		return maxHeight;
 	}
 	
 	
@@ -65,7 +81,45 @@ public class Board	{
 	*/
 	public void sanityCheck() {
 		if (DEBUG) {
-			// YOUR CODE HERE
+			// check maxHeight
+			int sMaxHeight = 0;
+			for (int i = 0; i < heights.length; i++) {
+				sMaxHeight = Math.max(sMaxHeight, heights[i]);
+			}
+			if (maxHeight != sMaxHeight) {
+				throw new RuntimeException(String.format("maxHeight = %d, should be %d.",
+						maxHeight, sMaxHeight));
+			}
+			
+			// check heights
+			for (int i = 0; i < heights.length; i++) {
+				int min = 0;
+				int j = height - 1;
+				for (; j >= 0; j--) {
+					if (grid[i][j]) {
+						break;
+					}
+				}
+				min = j + 1;
+				
+				if (min != heights[i]) {
+					throw new RuntimeException(String.format("heights[%d] = %d, should be %d.",
+							i, heights[i], min));
+				}
+			}
+			
+			// check widths
+			for (int i = 0; i < widths.length; i++) {
+				int sum = 0;
+				for (int j = 0; j < width; j++) {
+					sum += (grid[j][i] ? 1 : 0);
+				}
+				if (sum != widths[i]) {
+					throw new RuntimeException(String.format("widths[%d] = %d, should be %d.",
+							i, widths[i], sum));
+				}
+			}
+			
 		}
 	}
 	
@@ -79,7 +133,11 @@ public class Board	{
 	 to compute this fast -- O(skirt length).
 	*/
 	public int dropHeight(Piece piece, int x) {
-		return 0; // YOUR CODE HERE
+		int result = 0;
+		for (int i = 0; i < piece.getWidth(); i++) {
+			result = Math.max(result, heights[x + i] - piece.getSkirt()[i]);
+		}
+		return result;
 	}
 	
 	
@@ -89,7 +147,7 @@ public class Board	{
 	 The height is 0 if the column contains no blocks.
 	*/
 	public int getColumnHeight(int x) {
-		return 0; // YOUR CODE HERE
+		return heights[x];
 	}
 	
 	
@@ -98,7 +156,7 @@ public class Board	{
 	 the given row.
 	*/
 	public int getRowWidth(int y) {
-		 return 0; // YOUR CODE HERE
+		 return widths[y];
 	}
 	
 	
@@ -108,7 +166,11 @@ public class Board	{
 	 always return true.
 	*/
 	public boolean getGrid(int x, int y) {
-		return false; // YOUR CODE HERE
+		if (x < 0 || x >= width || y < 0 || y >= height) {
+			return true;
+		} else {
+			return grid[x][y];
+		}
 	}
 	
 	
@@ -134,10 +196,40 @@ public class Board	{
 	public int place(Piece piece, int x, int y) {
 		// flag !committed problem
 		if (!committed) throw new RuntimeException("place commit problem");
-			
+		
+		System.arraycopy(widths, 0, xWidths, 0, widths.length);
+		System.arraycopy(heights, 0, xHeights, 0, heights.length);
+		for (int i = 0; i < width; i++) {
+			System.arraycopy(grid[i], 0, xGrid[i], 0, height);
+		}
+		xMaxHeight = maxHeight;
+		
+		committed = false;
+		
+		if (x < 0 || y < 0 || x >= width || y >= height
+				|| piece.getWidth() + x > width || piece.getHeight() + y > height) {
+			return PLACE_OUT_BOUNDS;
+		}
+		
 		int result = PLACE_OK;
 		
-		// YOUR CODE HERE
+		TPoint[] body = piece.getBody();
+		for (int i = 0; i < body.length; i++) {
+			if (grid[x + body[i].x][y + body[i].y]) {
+				return PLACE_BAD;
+			}
+			
+			grid[x + body[i].x][y + body[i].y] = true;
+			widths[body[i].y + y] += 1;
+			if (widths[body[i].y + y] == width) {
+				result = PLACE_ROW_FILLED;
+			}
+			
+			heights[x + body[i].x] = Math.max(heights[x + body[i].x], y + body[i].y  + 1);
+			maxHeight = Math.max(maxHeight, heights[body[i].x + x]);
+		}
+		
+		sanityCheck();
 		
 		return result;
 	}
@@ -148,9 +240,53 @@ public class Board	{
 	 things above down. Returns the number of rows cleared.
 	*/
 	public int clearRows() {
-		int rowsCleared = 0;
-		// YOUR CODE HERE
+		if (committed) {
+			System.arraycopy(widths, 0, xWidths, 0, widths.length);
+			System.arraycopy(heights, 0, xHeights, 0, heights.length);
+			for (int i = 0; i < width; i++) {
+				System.arraycopy(grid[i], 0, xGrid[i], 0, height);
+			}
+			xMaxHeight = maxHeight;
+			
+			committed = false;
+		}
+		
+		int to = 0;
+		while (to < maxHeight && widths[to] < width) {
+			to += 1;
+		}
+		
+		int from = to;
+		for (; to < maxHeight; to++) {
+			do {
+				from++;
+			} while (from < maxHeight && widths[from] == width);
+				
+			if (from < maxHeight) {
+				widths[to] = widths[from];
+				for (int i = 0; i < width; i++) {
+					grid[i][to] = grid[i][from];
+				}
+			} else {
+				widths[to] = 0;
+				for (int i = 0; i < width; i++) {
+					grid[i][to] = false;
+				}
+			}
+		}
+		
+		int rowsCleared = from - to;
+		maxHeight = 0;
+		
+		for (int i = 0; i < heights.length; i++) {
+			int j;
+			for (j = heights[i] - rowsCleared - 1; j >= 0 && !grid[i][j]; j--) { }
+			heights[i] = j + 1;
+			maxHeight = Math.max(maxHeight, heights[i]);
+		}
+		
 		sanityCheck();
+		
 		return rowsCleared;
 	}
 
@@ -164,7 +300,28 @@ public class Board	{
 	 See the overview docs.
 	*/
 	public void undo() {
-		// YOUR CODE HERE
+		if (!committed) {
+			committed = true;
+			
+			maxHeight = xMaxHeight;
+			
+			// swap pointers! Very smart! :)
+			Object tmp;
+			
+			tmp = heights;
+			heights = xHeights;
+			xHeights = (int[]) tmp;
+			
+			tmp = widths;
+			widths = xWidths;
+			xWidths = (int[]) tmp;
+			
+			tmp = grid;
+			grid = xGrid;
+			xGrid = (boolean[][]) tmp;
+		}
+		
+		sanityCheck();
 	}
 	
 	
@@ -196,6 +353,14 @@ public class Board	{
 		for (int x=0; x<width+2; x++) buff.append('-');
 		return(buff.toString());
 	}
+	
+	public static void main(String[] args) {
+		Board board= new Board(6,6);
+		Piece p1 = Piece.getPieces()[Piece.SQUARE];
+		board.place(p1, 0, 0);
+		System.out.println(board.toString());
+	}
+	
 }
 
 
