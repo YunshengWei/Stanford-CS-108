@@ -720,7 +720,7 @@ public class JTetris extends JComponent {
 		// to use the GUI LookAndFeel of the native platform. It's ok
 		// to ignore the exception.
 		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+			UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
 		} catch (Exception ignored) { }
 		
 		JTetris tetris = new JTetris(16);

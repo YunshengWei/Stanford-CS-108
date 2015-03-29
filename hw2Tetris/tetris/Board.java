@@ -251,6 +251,8 @@ public class Board	{
 			committed = false;
 		}
 		
+		int maxHeightBefore = maxHeight;
+		
 		int to = 0;
 		while (to < maxHeight && widths[to] < width) {
 			to += 1;
@@ -275,19 +277,18 @@ public class Board	{
 			}
 		}
 		
-		int rowsCleared = from - to;
 		maxHeight = 0;
 		
 		for (int i = 0; i < heights.length; i++) {
 			int j;
-			for (j = heights[i] - rowsCleared - 1; j >= 0 && !grid[i][j]; j--) { }
+			for (j = heights[i] - 1; j >= 0 && !grid[i][j]; j--) { }
 			heights[i] = j + 1;
 			maxHeight = Math.max(maxHeight, heights[i]);
 		}
 		
 		sanityCheck();
 		
-		return rowsCleared;
+		return maxHeightBefore - maxHeight;
 	}
 
 
