@@ -35,6 +35,7 @@ public class SudokuTest {
                 + "8 1 9 6 4 7 2 5 3" + System.lineSeparator()
                 + "6 7 3 5 2 9 8 4 1" + System.lineSeparator()
                 + "4 5 2 3 1 8 6 7 9";
+        int count = sudoku.solve();
         assertEquals(sudoku.getSolutionText(), easyGridSolution);
     }
 }

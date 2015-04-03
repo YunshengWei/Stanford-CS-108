@@ -1,8 +1,10 @@
 package assign3;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -145,10 +147,10 @@ public class Sudoku {
      */
     private class Spot {
         // Represent the coordinate of the Spot in grid
-        int x;
-        int y;
+        final int x;
+        final int y;
 
-        Set<Integer> candidates;
+        Set<Integer> rowCand, colCand, neighborCand;
 
         Spot(int x, int y) {
             this.x = x;
@@ -156,7 +158,34 @@ public class Sudoku {
         }
 
         void set(int value) {
-            solution[x][y] = value;
+            tempSolution[x][y] = value;
+            rowCand.removeAll(Collections.singleton(value));
+            colCand.removeAll(Collections.singleton(value));
+            neighborCand.removeAll(Collections.singleton(value));
+        }
+        
+        void clear() {
+            int value = tempSolution[x][y];
+            if (value != 0) {
+                rowCand.add(value);
+                colCand.add(value);
+                neighborCand.add(value);
+                tempSolution[x][y] = 0;
+            }
+        }
+
+        int getCandSize() {
+            return getCandidates().size();
+        }
+
+        Set<Integer> getCandidates() {
+            Set<Integer> candidates = new HashSet<Integer>(Arrays.asList(1, 2,
+                    3, 4, 5, 6, 7, 8, 9));
+            candidates.retainAll(rowCand);
+            candidates.retainAll(colCand);
+            candidates.retainAll(neighborCand);
+
+            return candidates;
         }
     }
 
@@ -168,9 +197,33 @@ public class Sudoku {
      */
     private List<Spot> getSpotList(int[][] grid) {
         List<Spot> spotList = new ArrayList<>();
+        Set<Integer>[] rowCandArray = new Set[Sudoku.SIZE];
+        Set<Integer>[] colCandArray = new Set[Sudoku.SIZE];
+        Set<Integer>[] neighborCandArray = new Set[Sudoku.SIZE];
+        for (int i = 0; i < Sudoku.SIZE; i++) {
+            rowCandArray[i] = new HashSet<Integer>(Arrays.asList(1, 2, 3, 4, 5,
+                    6, 7, 8, 9));
+            colCandArray[i] = new HashSet<Integer>(Arrays.asList(1, 2, 3, 4, 5,
+                    6, 7, 8, 9));
+            neighborCandArray[i] = new HashSet<Integer>(Arrays.asList(1, 2, 3,
+                    4, 5, 6, 7, 8, 9));
+        }
+
         for (int i = 0; i < grid.length; i++) {
             for (int j = 0; j < grid[i].length; j++) {
-                spotList.add(new Spot(i, j));
+                int value = grid[i][j];
+                int neighcandIndex = (i / Sudoku.PART) * 3 + j / 3;
+                if (value == 0) {
+                    Spot spot = new Spot(i, j);
+                    spot.rowCand = rowCandArray[i];
+                    spot.colCand = colCandArray[j];
+                    spot.neighborCand = neighborCandArray[neighcandIndex];
+                    spotList.add(spot);
+                } else {
+                    rowCandArray[i].removeAll(Collections.singleton(value));
+                    colCandArray[j].removeAll(Collections.singleton(value));
+                    neighborCandArray[neighcandIndex].removeAll(Collections.singleton(value));
+                }
             }
         }
         return spotList;
@@ -178,8 +231,8 @@ public class Sudoku {
 
     // grid should never be changed (include its content).
     private final int[][] grid;
-    private String solutionText;
     private int[][] tempSolution;
+    private int[][] firstSolution;
     private int countSolutions = 0;
     private long elapsedTime;
 
@@ -209,9 +262,14 @@ public class Sudoku {
         return Sudoku.intsToString(grid);
     }
 
-    // Detect whether the given Sudoku puzzle has conflicts itself.
-    // If yes, then no need to solve.
-    private boolean detectConflicts() {
+    /**
+     * Detect whether the given grid has conflicts.
+     * 
+     * @param grid
+     *            the grid to check
+     * @return <code>true</code> if has conflict otherwise <code>false</code>
+     */
+    private boolean detectConflicts(int[][] grid) {
         // Check rows
         for (int[] row : grid) {
             boolean[] used = new boolean[Sudoku.SIZE + 1];
@@ -222,7 +280,7 @@ public class Sudoku {
                 used[ele] = true;
             }
         }
-        
+
         // Check columns
         for (int j = 0; j < Sudoku.SIZE; j++) {
             boolean[] used = new boolean[Sudoku.SIZE + 1];
@@ -234,13 +292,15 @@ public class Sudoku {
                 used[ele] = true;
             }
         }
-        
+
         // Check 3 * 3 neighborhoods
         for (int i = 0; i < Sudoku.SIZE / Sudoku.PART; i++) {
             for (int j = 0; j < Sudoku.SIZE / Sudoku.PART; j++) {
                 boolean[] used = new boolean[Sudoku.SIZE + 1];
-                for (int ix = i * Sudoku.PART; ix < i * Sudoku.PART + Sudoku.PART; ix++) {
-                    for (int jy = j * Sudoku.PART; jy < j * Sudoku.PART + Sudoku.PART; jy++) {
+                for (int ix = i * Sudoku.PART; ix < i * Sudoku.PART
+                        + Sudoku.PART; ix++) {
+                    for (int jy = j * Sudoku.PART; jy < j * Sudoku.PART
+                            + Sudoku.PART; jy++) {
                         int ele = grid[ix][jy];
                         if (ele != 0 && used[ele]) {
                             return true;
@@ -250,26 +310,76 @@ public class Sudoku {
                 }
             }
         }
-        
+
         return false;
     }
-    
+
+    /**
+     * Solve the Sudoku problem recursively. Current partial solution is in
+     * partialSol, empty Spot is in in spotList[listIndex .. end - 1]
+     * 
+     * @param partialSol
+     * @param spotList
+     * @param listIndex
+     * @return whether to continue searching or not
+     */
+    private boolean solveRec(int[][] partialSol, List<Spot> spotList, int listIndex) {
+        if (listIndex >= spotList.size()) {
+            countSolutions += 1;
+            if (firstSolution == null) {
+                firstSolution = new int[tempSolution.length][tempSolution[0].length];
+                for (int i = 0; i < firstSolution.length; i++) {
+                    System.arraycopy(tempSolution[i], 0, firstSolution[i], 0,
+                            tempSolution[0].length);
+                }
+            }
+            if (countSolutions >= Sudoku.MAX_SOLUTIONS) {
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            Spot curSpot = spotList.get(listIndex++);
+            for (int val: curSpot.getCandidates()) {
+                curSpot.set(val);
+                if (!solveRec(partialSol, spotList, listIndex)) {
+                    return false;
+                }
+                curSpot.clear();
+            }
+            return true;            
+        }
+    }
+
     /**
      * Solves the puzzle, invoking the underlying recursive search.
+     * 
+     * @return the number of solutions (max 100)
      */
     public int solve() {
         long startTime = System.currentTimeMillis();
-        
-        if (!detectConflicts()) {
+
+        countSolutions = 0;
+
+        if (!detectConflicts(grid)) {
             List<Spot> spotList = getSpotList(grid);
             Collections.sort(spotList, new Comparator<Spot>() {
                 @Override
                 public int compare(Spot lhs, Spot rhs) {
-                    return lhs.candidates.size() - rhs.candidates.size();
+                    return lhs.getCandSize() - rhs.getCandSize();
                 }
             });
+
+            // Initialize tempSolution with grid
+            tempSolution = new int[grid.length][grid[0].length];
+            for (int i = 0; i < tempSolution.length; i++) {
+                System.arraycopy(grid[i], 0, tempSolution[i], 0, grid[0].length);
+            }
+
+            solveRec(tempSolution, spotList, 0);
+
+            assert !detectConflicts(firstSolution);
         }
-        
 
         elapsedTime = System.currentTimeMillis() - startTime;
         return 0;
@@ -284,7 +394,7 @@ public class Sudoku {
         if (0 == countSolutions) {
             return "";
         } else {
-            return solutionText;
+            return Sudoku.intsToString(firstSolution);
         }
     }
 
