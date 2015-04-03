@@ -34,6 +34,12 @@ public class Sudoku {
             "3 7 0 0 0 0 0 8 0", "0 0 1 0 9 3 0 0 0", "0 4 0 7 8 0 0 0 3",
             "0 9 3 8 0 0 0 1 2", "0 0 0 0 4 0 0 0 0", "5 2 0 0 0 6 7 9 0",
             "6 0 0 0 2 1 0 4 0", "0 0 0 5 3 0 9 0 0", "0 3 0 0 0 0 0 5 1");
+    
+    // Added an unconstrained grid for testing
+    public static final int[][] arbitraryGrid = Sudoku.stringsToGrid(
+            "0 0 0 0 0 0 0 8 0", "0 0 0 0 0 0 0 0 0", "0 0 0 0 0 0 0 0 0",
+            "0 0 0 0 0 0 0 0 0", "0 0 0 0 0 0 0 0 0", "0 0 0 0 0 0 0 0 0",
+            "0 0 0 0 0 0 0 0 0", "0 0 0 0 0 0 0 0 0", "0 0 0 0 0 0 0 0 0");
 
     public static final int SIZE = 9; // size of the whole 9x9 puzzle
     public static final int PART = 3; // size of each 3x3 part
@@ -112,7 +118,7 @@ public class Sudoku {
     // solving hardGrid.
     public static void main(String[] args) {
         Sudoku sudoku;
-        sudoku = new Sudoku(hardGrid);
+        sudoku = new Sudoku(Sudoku.hardGrid);
 
         System.out.println(sudoku); // print the raw problem
         int count = sudoku.solve();
@@ -382,7 +388,7 @@ public class Sudoku {
         }
 
         elapsedTime = System.currentTimeMillis() - startTime;
-        return 0;
+        return countSolutions;
     }
 
     /**

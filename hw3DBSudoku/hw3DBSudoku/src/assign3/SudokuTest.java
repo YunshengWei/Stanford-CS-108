@@ -38,4 +38,10 @@ public class SudokuTest {
         int count = sudoku.solve();
         assertEquals(sudoku.getSolutionText(), easyGridSolution);
     }
+    
+    @Test
+    public void testSolve2() {
+        Sudoku sudoku = new Sudoku(Sudoku.arbitraryGrid);
+        assertEquals(sudoku.solve(), Sudoku.MAX_SOLUTIONS);
+    }
 }
