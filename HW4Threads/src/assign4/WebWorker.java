@@ -18,7 +18,8 @@ public class WebWorker implements Runnable {
     final int tableIndex;
     final String urlString;
 
-    public WebWorker(Semaphore semaphore, int tableIndex, WebFrame webFrame, String urlString) {
+    public WebWorker(Semaphore semaphore, int tableIndex, WebFrame webFrame,
+            String urlString) {
         this.semaphore = semaphore;
         this.tableIndex = tableIndex;
         this.webFrame = webFrame;
@@ -53,22 +54,26 @@ public class WebWorker implements Runnable {
 
             if (Thread.currentThread().isInterrupted()) {
                 status = "interrupted";
-            }
-            while ((len = reader.read(array, 0, array.length)) > 0) {
-                if (Thread.currentThread().isInterrupted()) {
-                    status = "interrupted";
+            } else {
+                while ((len = reader.read(array, 0, array.length)) > 0) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        status = "interrupted";
+                        break;
+                    }
+                    contents.append(array, 0, len);
+                    Thread.sleep(100);
                 }
-                contents.append(array, 0, len);
-                Thread.sleep(100);
             }
-            
+
             if (status == null) {
                 long completedTime = System.currentTimeMillis();
                 Date completedDate = new Date(completedTime);
-                String completionTime = DateFormat.getTimeInstance().format(completedDate);
+                String completionTime = DateFormat.getTimeInstance().format(
+                        completedDate);
                 long elapsedTime = completedTime - startTime;
-                
-                status = completionTime + "  " + elapsedTime + "ms  " + contents.length() + " bytes";
+
+                status = completionTime + "  " + elapsedTime + "ms  "
+                        + contents.length() + " bytes";
             }
         } catch (IOException e) {
             status = "err";
@@ -82,7 +87,7 @@ public class WebWorker implements Runnable {
             } catch (IOException ignored) {
             }
         }
-        
+
         final String statusString = status;
         SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -98,6 +103,7 @@ public class WebWorker implements Runnable {
         download(urlString);
         webFrame.decRunningThreads();
         webFrame.incCompletedThreads();
+        webFrame.incProgressBar();
         semaphore.release();
     }
 }

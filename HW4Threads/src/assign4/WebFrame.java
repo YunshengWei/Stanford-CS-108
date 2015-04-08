@@ -23,7 +23,6 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 
@@ -42,7 +41,17 @@ public class WebFrame extends JFrame {
     private Thread launcher;
     private int numRunning;
     private int numCompleted;
+    private Object lock = new Object();
 
+    protected void incProgressBar() {
+        SwingUtilities.invokeLater(new Runnable() {
+           @Override
+           public void run() {
+               bar.setValue(bar.getValue() + 1);
+           }
+        });
+    }
+    
     protected synchronized void incRunningThreads() {
         numRunning++;
         SwingUtilities.invokeLater(new Runnable() {
@@ -79,7 +88,7 @@ public class WebFrame extends JFrame {
             for (int i = 0; i < table.getRowCount(); i++) {
                 table.setValueAt(null, i, 1);
             }
-            
+
             numCompleted = 0;
             runningLabel.setText("Running:" + numRunning);
             completedLabel.setText("Completed:" + numCompleted);
@@ -109,7 +118,10 @@ public class WebFrame extends JFrame {
     private class Stop implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            launcher.interrupt();
+            stopButton.setEnabled(false);
+            synchronized (lock) {
+                launcher.interrupt();
+            }
         }
     }
 
@@ -125,7 +137,7 @@ public class WebFrame extends JFrame {
         public void run() {
             long startTime = System.currentTimeMillis();
             incRunningThreads();
-            
+
             try {
                 // Note: the thread-safe way to use get() method
                 final Integer[] rowCount = new Integer[1];
@@ -137,7 +149,7 @@ public class WebFrame extends JFrame {
                 });
 
                 threadArray = new Thread[rowCount[0]];
-                
+
                 for (int i = 0; i < rowCount[0]; i++) {
                     final String[] url = new String[1];
                     final int rowIndex = i;
@@ -148,11 +160,17 @@ public class WebFrame extends JFrame {
                         }
                     });
                     String urlString = url[0];
+
                     semaphore.acquire();
-                    Thread workerThread = new Thread(new WebWorker(semaphore,
-                            i, WebFrame.this, urlString));
-                    threadArray[i] = workerThread;
-                    workerThread.start();
+                    synchronized (lock) {
+                        if (Thread.currentThread().isInterrupted()) {
+                            throw new InterruptedException();
+                        }
+                        Thread workerThread = new Thread(new WebWorker(
+                                semaphore, i, WebFrame.this, urlString));
+                        threadArray[i] = workerThread;
+                        workerThread.start();
+                    }
                 }
 
                 for (Thread thread : threadArray) {
@@ -164,9 +182,18 @@ public class WebFrame extends JFrame {
                         thread.interrupt();
                     }
                 }
+
+                try {
+                    for (Thread thread : threadArray) {
+                        if (thread != null) {
+                            thread.join();
+                        }
+                    }
+                } catch (InterruptedException ignored) {
+                }
             } catch (InvocationTargetException ignored) {
             }
-            
+
             decRunningThreads();
             final long elapsedTime = System.currentTimeMillis() - startTime;
             SwingUtilities.invokeLater(new Runnable() {
@@ -241,6 +268,7 @@ public class WebFrame extends JFrame {
         // "Stop" button
         stopButton = new JButton("Stop");
         stopButton.addActionListener(new Stop());
+        stopButton.setEnabled(false);
         panel.add(stopButton);
 
         // pack() and setDefaultCloseOperation() can be think of as property of
