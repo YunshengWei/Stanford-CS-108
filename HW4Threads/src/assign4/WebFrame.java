@@ -54,30 +54,34 @@ public class WebFrame extends JFrame {
     
     protected synchronized void incRunningThreads() {
         numRunning++;
+        // This is important.
+        final int numRunningTemp = numRunning;
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                runningLabel.setText("Running:" + numRunning);
+                runningLabel.setText("Running:" + numRunningTemp);
             }
         });
     }
 
     protected synchronized void decRunningThreads() {
         numRunning--;
+        final int numRunningTemp = numRunning;
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                runningLabel.setText("Running:" + numRunning);
+                runningLabel.setText("Running:" + numRunningTemp);
             }
         });
     }
 
     protected synchronized void incCompletedThreads() {
         numCompleted++;
+        final int numCompletedTemp = numCompleted;
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                completedLabel.setText("Completed:" + numCompleted);
+                completedLabel.setText("Completed:" + numCompletedTemp);
             }
         });
     }
